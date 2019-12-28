@@ -52,9 +52,11 @@ taskmain(int argc, char **argv)
 		fprintf(stderr, "cannot announce on tcp port %d: %s\n", atoi(argv[1]), strerror(errno));
 		taskexitall(1);
 	}
+    // 直接设置non-blocking
 	fdnoblock(fd);
 	while((cfd = netaccept(fd, remote, &rport)) >= 0){
 		fprintf(stderr, "connection from %s:%d\n", remote, rport);
+        // 创建一个代理任务
 		taskcreate(proxytask, (void*)cfd, STACK);
 	}
 }
@@ -72,6 +74,7 @@ proxytask(void *v)
 
 	fprintf(stderr, "connected to %s:%d\n", server, port);
 
+    // 创建两个读写任务
 	taskcreate(rwtask, mkfd2(fd, remotefd), STACK);
 	taskcreate(rwtask, mkfd2(remotefd, fd), STACK);
 }

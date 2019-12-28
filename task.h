@@ -21,6 +21,7 @@ int		anyready(void);
 int		taskcreate(void (*f)(void *arg), void *arg, unsigned int stacksize);
 void		taskexit(int);
 void		taskexitall(int);
+// 只有声明没有定义, 需要自己写
 void		taskmain(int argc, char *argv[]);
 int		taskyield(void);
 void**		taskdata(void);
@@ -33,6 +34,7 @@ void		tasksystem(void);
 unsigned int	taskdelay(unsigned int);
 unsigned int	taskid(void);
 
+// 全局列表
 struct Tasklist	/* used internally */
 {
 	Task	*head;

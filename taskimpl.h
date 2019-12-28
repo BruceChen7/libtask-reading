@@ -158,15 +158,19 @@ struct Task
 	Task	*prev;
 	Task	*allnext;
 	Task	*allprev;
+    // 上下文
 	Context	context;
 	uvlong	alarmtime;
 	uint	id;
+    // 栈的指针
 	uchar	*stk;
+    // 栈的大小
 	uint	stksize;
 	int	exiting;
 	int	alltaskslot;
 	int	system;
 	int	ready;
+    // 启动历程和参数
 	void	(*startfn)(void*);
 	void	*startarg;
 	void	*udata;

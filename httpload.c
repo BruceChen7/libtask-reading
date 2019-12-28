@@ -20,15 +20,20 @@ taskmain(int argc, char **argv)
 {
 	int i, n;
 	
+    // 参数数量不对
 	if(argc != 4){
 		fprintf(stderr, "usage: httpload n server url\n");
 		taskexitall(1);
 	}
+    // 负载数
 	n = atoi(argv[1]);
+    // 获取server地址
 	server = argv[2];
+    // 获取url
 	url = argv[3];
 
 	for(i=0; i<n; i++){
+        // 同时创建n个任务
 		taskcreate(fetchtask, 0, STACK);
 		while(taskyield() > 1)
 			;

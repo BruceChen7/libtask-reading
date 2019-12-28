@@ -21,7 +21,7 @@ fdtask(void *v)
 	int i, ms;
 	Task *t;
 	uvlong now;
-	
+
 	tasksystem();
 	taskname("fdtask");
 	for(;;){
@@ -59,7 +59,7 @@ fdtask(void *v)
 				polltask[i] = polltask[npollfd];
 			}
 		}
-		
+
 		now = nsec();
 		while((t=sleeping.head) && now >= t->alarmtime){
 			deltask(&sleeping, t);
@@ -75,7 +75,7 @@ taskdelay(uint ms)
 {
 	uvlong when, now;
 	Task *t;
-	
+
 	if(!startedfdtask){
 		startedfdtask = 1;
 		taskcreate(fdtask, 0, 32768);
@@ -93,7 +93,7 @@ taskdelay(uint ms)
 		taskrunning->prev = sleeping.tail;
 		taskrunning->next = nil;
 	}
-	
+
 	t = taskrunning;
 	t->alarmtime = when;
 	if(t->prev)
@@ -107,6 +107,7 @@ taskdelay(uint ms)
 
 	if(!t->system && sleepingcounted++ == 0)
 		taskcount++;
+    // 需要调度
 	taskswitch();
 
 	return (nsec() - now)/1000000;
@@ -126,7 +127,8 @@ fdwait(int fd, int rw)
 		fprint(2, "too many poll file descriptors\n");
 		abort();
 	}
-	
+
+    // 这种三目运算符的写法注意下
 	taskstate("fdwait for %s", rw=='r' ? "read" : rw=='w' ? "write" : "error");
 	bits = 0;
 	switch(rw){
@@ -143,6 +145,7 @@ fdwait(int fd, int rw)
 	pollfd[npollfd].events = bits;
 	pollfd[npollfd].revents = 0;
 	npollfd++;
+    // 主动的进行切换任务
 	taskswitch();
 }
 
@@ -151,7 +154,7 @@ int
 fdread1(int fd, void *buf, int n)
 {
 	int m;
-	
+
 	do
 		fdwait(fd, 'r');
 	while((m = read(fd, buf, n)) < 0 && errno == EAGAIN);
@@ -162,7 +165,8 @@ int
 fdread(int fd, void *buf, int n)
 {
 	int m;
-	
+
+    // non-blocking的读取，这样可以写的很自然
 	while((m=read(fd, buf, n)) < 0 && errno == EAGAIN)
 		fdwait(fd, 'r');
 	return m;
@@ -172,8 +176,9 @@ int
 fdwrite(int fd, void *buf, int n)
 {
 	int m, tot;
-	
+
 	for(tot=0; tot<n; tot+=m){
+        // 一直等到fd，可写
 		while((m=write(fd, (char*)buf+tot, n-tot)) < 0 && errno == EAGAIN)
 			fdwait(fd, 'w');
 		if(m < 0)
