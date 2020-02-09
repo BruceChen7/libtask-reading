@@ -6,14 +6,20 @@
 static int
 _qlock(QLock *l, int block)
 {
+    // 没有持有的协程
     if(l->owner == nil){
+        // 直接是正在运行协程
         l->owner = taskrunning;
         return 1;
     }
     if(!block)
         return 0;
+
+    // 更新等待列表
     addtask(&l->waiting, taskrunning);
+
     taskstate("qlock");
+
     taskswitch();
     if(l->owner != taskrunning){
         fprint(2, "qlock: owner=%p self=%p oops\n", l->owner, taskrunning);
@@ -38,7 +44,7 @@ void
 qunlock(QLock *l)
 {
     Task *ready;
-    
+
     if(l->owner == 0){
         fprint(2, "qunlock: owner=0\n");
         abort();
@@ -119,7 +125,7 @@ void
 wunlock(RWLock *l)
 {
     Task *t;
-    
+
     if(l->writer == nil){
         fprint(2, "wunlock: not locked\n");
         abort();

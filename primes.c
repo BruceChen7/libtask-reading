@@ -37,6 +37,7 @@ taskmain(int argc, char **argv)
     Channel *c;
 
     if(argc>1)
+        // 获取目标
         goal = atoi(argv[1]);
     else
         goal = 100;

@@ -105,6 +105,7 @@ taskalloc(void (*fn)(void*), void *arg, uint stack)
     memset(&t->context.uc, 0, sizeof t->context.uc);
     // 初始化信号量
     sigemptyset(&zero);
+    // 设置为阻塞模式
     sigprocmask(SIG_BLOCK, &zero, &t->context.uc.uc_sigmask);
 
     /* must initialize with current context */
@@ -150,9 +151,12 @@ taskcreate(void (*fn)(void*), void *arg, uint stack)
 
     // 创建一个任务
     t = taskalloc(fn, arg, stack);
+    // coroutine++
     taskcount++;
     id = t->id;
-    if(nalltask%64 == 0){
+
+    // task链的初始化
+    if (nalltask%64 == 0) {
         alltask = realloc(alltask, (nalltask+64)*sizeof(alltask[0]));
         if(alltask == nil){
             fprint(2, "out of memory\n");
@@ -162,6 +166,7 @@ taskcreate(void (*fn)(void*), void *arg, uint stack)
     t->alltaskslot = nalltask;
     // 在queue中保存这个task
     alltask[nalltask++] = t;
+    // 放到queue中
     taskready(t);
     return id;
 }
@@ -169,6 +174,7 @@ taskcreate(void (*fn)(void*), void *arg, uint stack)
 void
 tasksystem(void)
 {
+    // 如果没有设置成系统任务
     if(!taskrunning->system){
         taskrunning->system = 1;
         --taskcount;
@@ -199,6 +205,7 @@ taskyield(void)
     int n;
 
     n = tasknswitch;
+    // 放到等待列表中
     taskready(taskrunning);
     taskstate("yield");
     // 执行上下文切换
@@ -238,6 +245,7 @@ contextswitch(Context *from, Context *to)
     }
 }
 
+// 这个整个调度器的入口
 static void
 taskscheduler(void)
 {
@@ -332,6 +340,7 @@ needstack(int n)
 
     t = taskrunning;
 
+    // 栈空间太小
     if((char*)&t <= (char*)t->stk
     || (char*)&t - (char*)t->stk < 256+n){
         fprint(2, "task stack overflow: &t=%p tstk=%p n=%d\n", &t, t->stk, 256+n);

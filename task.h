@@ -47,7 +47,9 @@ struct Tasklist	/* used internally */
 typedef struct QLock QLock;
 struct QLock
 {
+    // 拥有的协程
 	Task	*owner;
+    // 等待的任务列表
 	Tasklist waiting;
 };
 
@@ -122,9 +124,12 @@ struct Altarray
 	unsigned int	m;
 };
 
+// channel的结构
 struct Channel
 {
+    // 每个元素的大小
 	unsigned int	bufsize;
+    // 单元数
 	unsigned int	elemsize;
 	unsigned char	*buf;
 	unsigned int	nbuf;

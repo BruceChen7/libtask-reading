@@ -24,35 +24,41 @@ fdtask(void *v)
 
     tasksystem();
     taskname("fdtask");
-    for(;;){
+
+    for (;;) {
         /* let everyone else run */
         while(taskyield() > 0)
             ;
         /* we're the only one runnable - poll for i/o */
         errno = 0;
         taskstate("poll");
-        if((t=sleeping.head) == nil)
+
+        if ((t=sleeping.head) == nil) {
             ms = -1;
-        else{
+        } else{
             /* sleep at most 5s */
             now = nsec();
-            if(now >= t->alarmtime)
+            if (now >= t->alarmtime) {
                 ms = 0;
-            else if(now+5*1000*1000*1000LL >= t->alarmtime)
+            } else if (now+5*1000*1000*1000LL >= t->alarmtime) {
                 ms = (t->alarmtime - now)/1000000;
-            else
+            } else {
                 ms = 5000;
+            }
         }
-        if(poll(pollfd, npollfd, ms) < 0){
-            if(errno == EINTR)
+
+        if (poll(pollfd, npollfd, ms) < 0) {
+            if (errno == EINTR) {
                 continue;
+            }
             fprint(2, "poll: %s\n", strerror(errno));
             taskexitall(0);
         }
 
         /* wake up the guys who deserve it */
-        for(i=0; i<npollfd; i++){
-            while(i < npollfd && pollfd[i].revents){
+        for (i=0; i<npollfd; i++) {
+
+            while (i < npollfd && pollfd[i].revents) {
                 taskready(polltask[i]);
                 --npollfd;
                 pollfd[i] = pollfd[npollfd];
@@ -61,7 +67,7 @@ fdtask(void *v)
         }
 
         now = nsec();
-        while((t=sleeping.head) && now >= t->alarmtime){
+        while ((t=sleeping.head) && now >= t->alarmtime) {
             deltask(&sleeping, t);
             if(!t->system && --sleepingcounted == 0)
                 taskcount--;
@@ -113,6 +119,7 @@ taskdelay(uint ms)
     return (nsec() - now)/1000000;
 }
 
+// 等待fd准备好相关事件
 void
 fdwait(int fd, int rw)
 {
@@ -140,6 +147,7 @@ fdwait(int fd, int rw)
         break;
     }
 
+    // 设置当前polling_task
     polltask[npollfd] = taskrunning;
     pollfd[npollfd].fd = fd;
     pollfd[npollfd].events = bits;
@@ -167,8 +175,10 @@ fdread(int fd, void *buf, int n)
     int m;
 
     // non-blocking的读取，这样可以写的很自然
-    while((m=read(fd, buf, n)) < 0 && errno == EAGAIN)
+    while ((m=read(fd, buf, n)) < 0 && errno == EAGAIN)
+        // 等待读事件
         fdwait(fd, 'r');
+    // 直接返回读到的字节数
     return m;
 }
 

@@ -38,12 +38,14 @@ netannounce(int istcp, char *server, int port)
         setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char*)&n, sizeof n);
     }
 
+    // 绑定接口
     if(bind(fd, (struct sockaddr*)&sa, sizeof sa) < 0){
         taskstate("bind failed");
         close(fd);
         return -1;
     }
 
+    // listen
     if(proto == SOCK_STREAM)
         listen(fd, 16);
 

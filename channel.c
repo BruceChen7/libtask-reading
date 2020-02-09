@@ -2,6 +2,7 @@
 
 #include "taskimpl.h"
 
+// 创建一个channel
 Channel*
 chancreate(int elemsize, int bufsize)
 {
@@ -16,6 +17,7 @@ chancreate(int elemsize, int bufsize)
     c->elemsize = elemsize;
     c->bufsize = bufsize;
     c->nbuf = 0;
+    // 放置在channel的后面，
     c->buf = (uchar*)(c+1);
     return c;
 }
