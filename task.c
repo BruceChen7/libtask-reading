@@ -204,12 +204,14 @@ taskyield(void)
 {
     int n;
 
+    // 备份之前
     n = tasknswitch;
     // 放到等待列表中
     taskready(taskrunning);
     taskstate("yield");
     // 执行上下文切换
     taskswitch();
+    // 自己等待期间运行的任务数
     return tasknswitch - n - 1;
 }
 
@@ -238,7 +240,8 @@ static void
 contextswitch(Context *from, Context *to)
 {
     // 直接使用swapcontext来执行上下文切换
-    // 保存当前上下文到from，并执行当前上下文
+    // 保存当前上下文到from，并执行to上下文
+    // 当执行完毕后，跳转到from上下文中
     if(swapcontext(&from->uc, &to->uc) < 0){
         fprint(2, "swapcontext failed: %r\n");
         assert(0);
@@ -264,7 +267,7 @@ taskscheduler(void)
             fprint(2, "no runnable tasks! %d tasks stalled\n", taskcount);
             exit(1);
         }
-        // 删除任务
+        // 删除该任务
         deltask(&taskrunqueue, t);
         t->ready = 0;
         // 更新当前任务列表
@@ -272,10 +275,14 @@ taskscheduler(void)
         tasknswitch++;
         taskdebug("run %d (%s)", t->id, t->name);
         // 切到新的context
+        // 这里的taskschedcontext，是目前被调度的context
+        // 换成新的coroutine的context
         contextswitch(&taskschedcontext, &t->context);
 //print("back in scheduler\n");
         taskrunning = nil;
+        // 进行资源释放
         if(t->exiting){
+            // 减少当前任务列表
             if(!t->system)
                 // 如果不是系统任务，那么直接将任务数-1
                 taskcount--;
@@ -320,8 +327,10 @@ taskstate(char *fmt, ...)
     va_list arg;
     Task *t;
 
+    // 获取当前的任务列表
     t = taskrunning;
     va_start(arg, fmt);
+    // 将状态描述写到改状态中
     vsnprint(t->state, sizeof t->name, fmt, arg);
     va_end(arg);
 }
@@ -348,6 +357,7 @@ needstack(int n)
     }
 }
 
+// 打印全局的coroutine列表
 static void
 taskinfo(int s)
 {
@@ -406,11 +416,13 @@ main(int argc, char **argv)
     taskargc = argc;
     taskargv = argv;
 
+    // main coroutine
     if(mainstacksize == 0)
         mainstacksize = 256*1024;
     // 创建main任务
     // 25k的栈空间
     taskcreate(taskmainstart, nil, mainstacksize);
+    // 开始执行调度
     taskscheduler();
     // 不可能出现
     fprint(2, "taskscheduler returned in main!\n");

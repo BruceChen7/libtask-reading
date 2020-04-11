@@ -20,10 +20,12 @@ netannounce(int istcp, char *server, int port)
     sa.sin_family = AF_INET;
     // 如果是指定了主机地址
     if(server != nil && strcmp(server, "*") != 0){
+        // 查找
         if(netlookup(server, &ip) < 0){
             taskstate("netlookup failed");
             return -1;
         }
+        // 使用ip地址
         memmove(&sa.sin_addr, &ip, 4);
     }
     sa.sin_port = htons(port);
@@ -62,6 +64,7 @@ netaccept(int fd, char *server, int *port)
     uchar *ip;
     socklen_t len;
 
+    // 等待该连接可读
     fdwait(fd, 'r');
 
     taskstate("netaccept");
@@ -76,8 +79,10 @@ netaccept(int fd, char *server, int *port)
     }
     if(port)
         *port = ntohs(sa.sin_port);
+    // 设置为non-block
     fdnoblock(cfd);
     one = 1;
+    // 设置no-delay算法
     setsockopt(cfd, IPPROTO_TCP, TCP_NODELAY, (char*)&one, sizeof one);
     taskstate("netaccept succeeded");
     return cfd;

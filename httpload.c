@@ -34,7 +34,10 @@ taskmain(int argc, char **argv)
 
     for(i=0; i<n; i++){
         // 同时创建n个任务
+        // taskcreate会放到ready队列中
         taskcreate(fetchtask, 0, STACK);
+        // 自己等待期间运行的fetch task 都大于1
+        // 就一直让出CPU，让别的fetch task运行
         while(taskyield() > 1)
             ;
         sleep(1);
@@ -47,6 +50,7 @@ fetchtask(void *v)
     int fd, n;
     char buf[512];
 
+    // 开始跑负载
     fprintf(stderr, "starting...\n");
     for(;;){
         if((fd = netdial(TCP, server, 80)) < 0){

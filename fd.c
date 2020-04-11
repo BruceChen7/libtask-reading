@@ -1,3 +1,4 @@
+#include "task.h"
 #include "taskimpl.h"
 #include <sys/poll.h>
 #include <fcntl.h>
@@ -8,6 +9,7 @@ enum
 };
 
 static struct pollfd pollfd[MAXFD];
+// 设置polltask任务列表
 static Task *polltask[MAXFD];
 static int npollfd;
 static int startedfdtask;
@@ -22,10 +24,13 @@ fdtask(void *v)
     Task *t;
     uvlong now;
 
+    // 设置systemtask
     tasksystem();
     taskname("fdtask");
 
     for (;;) {
+        // 先让别的coroutine执行
+        // 如果一直有CPU密集的任务，那就一直执行不到
         /* let everyone else run */
         while(taskyield() > 0)
             ;
@@ -68,9 +73,11 @@ fdtask(void *v)
 
         now = nsec();
         while ((t=sleeping.head) && now >= t->alarmtime) {
+            // 删除sleeping中的任务
             deltask(&sleeping, t);
-            if(!t->system && --sleepingcounted == 0)
+            if (!t->system && --sleepingcounted == 0)
                 taskcount--;
+            // 将该任务放到ready中的列表中
             taskready(t);
         }
     }
@@ -82,36 +89,40 @@ taskdelay(uint ms)
     uvlong when, now;
     Task *t;
 
-    if(!startedfdtask){
+    if (!startedfdtask) {
         startedfdtask = 1;
         taskcreate(fdtask, 0, 32768);
     }
 
+    // 纳秒
     now = nsec();
     when = now+(uvlong)ms*1000000;
-    for(t=sleeping.head; t!=nil && t->alarmtime < when; t=t->next)
+
+    for (t=sleeping.head; t!=nil && t->alarmtime < when; t=t->next)
         ;
 
-    if(t){
+    if (t) {
         taskrunning->prev = t->prev;
         taskrunning->next = t;
-    }else{
+    } else {
         taskrunning->prev = sleeping.tail;
         taskrunning->next = nil;
     }
 
     t = taskrunning;
     t->alarmtime = when;
-    if(t->prev)
+
+    if (t->prev)
         t->prev->next = t;
     else
         sleeping.head = t;
-    if(t->next)
+
+    if (t->next)
         t->next->prev = t;
     else
         sleeping.tail = t;
 
-    if(!t->system && sleepingcounted++ == 0)
+    if (!t->system && sleepingcounted++ == 0)
         taskcount++;
     // 需要调度
     taskswitch();
@@ -125,11 +136,14 @@ fdwait(int fd, int rw)
 {
     int bits;
 
+    // 如果没有创建fd poll coroutine
+    // 那么创建一个coroutine
     if(!startedfdtask){
         startedfdtask = 1;
         taskcreate(fdtask, 0, 32768);
     }
 
+    // 当前最多poll的文件描述符
     if(npollfd >= MAXFD){
         fprint(2, "too many poll file descriptors\n");
         abort();

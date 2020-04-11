@@ -8,6 +8,7 @@ chancreate(int elemsize, int bufsize)
 {
     Channel *c;
 
+    // 可以有多个buffer
     c = malloc(sizeof *c+bufsize*elemsize);
     if(c == nil){
         fprint(2, "chancreate malloc: %r");
@@ -76,9 +77,11 @@ altcanexec(Alt *a)
     Altarray *ar;
     Channel *c;
 
+    // nop channel 那么不可以执行
     if(a->op == CHANNOP)
         return 0;
     c = a->c;
+    // 无缓冲的channel，那么
     if(c->bufsize == 0){
         ar = chanarray(c, otherop(a->op));
         return ar && ar->n;
@@ -229,14 +232,19 @@ chanalt(Alt *a)
     Channel *c;
     Task *t;
 
+    // 需要512个字节的t栈
     needstack(512);
     for(i=0; a[i].op != CHANEND && a[i].op != CHANNOBLK; i++)
         ;
+    // 到达了哨兵哪个原属
     n = i;
+
+    // 如果可以block
     canblock = a[i].op == CHANEND;
 
     t = taskrunning;
     for(i=0; i<n; i++){
+        // 设置当前的task
         a[i].task = t;
         a[i].xalt = a;
     }
@@ -251,6 +259,7 @@ if(dbgalt) print("*");
             ncan++;
         }
     }
+
     if(ncan){
         j = rand()%ncan;
         for(i=0; i<n; i++){
@@ -295,6 +304,7 @@ _chanop(Channel *c, int op, void *p, int canblock)
     a[0].c = c;
     a[0].op = op;
     a[0].v = p;
+    // 这是个哨兵值
     a[1].op = canblock ? CHANEND : CHANNOBLK;
     if(chanalt(a) < 0)
         return -1;
@@ -358,6 +368,7 @@ channbrecvp(Channel *c)
 int
 chansendul(Channel *c, ulong val)
 {
+    // 都是可以block
     return _chanop(c, CHANSND, &val, 1);
 }
 

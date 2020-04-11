@@ -112,6 +112,9 @@ struct Alt
 {
 	Channel		*c;
 	void		*v;
+    // op的可能取值为CHANEND
+    // CHANSND
+    // CHANRCV等
 	unsigned int	op;
 	Task		*task;
 	Alt		*xalt;
@@ -134,8 +137,8 @@ struct Channel
 	unsigned char	*buf;
 	unsigned int	nbuf;
 	unsigned int	off;
-	Altarray	asend;
-	Altarray	arecv;
+	Altarray	asend; // 发送队列
+	Altarray	arecv;  // 接收队列
 	char		*name;
 };
 

@@ -16,14 +16,22 @@ primetask(void *arg)
     int p, i;
     c = arg;
 
+    // 从channal中获取
     p = chanrecvul(c);
+
     if(p > goal)
         taskexitall(0);
-    if(!quiet)
+
+    if(!quiet) {
         printf("%d\n", p);
+    }
+
+    // 创建一个channel
     nc = chancreate(sizeof(unsigned long), buffer);
+    // 再创建一个task
     taskcreate(primetask, nc, 32768);
-    for(;;){
+
+    for (;;) {
         i = chanrecvul(c);
         if(i%p)
             chansendul(nc, i);
@@ -45,6 +53,8 @@ taskmain(int argc, char **argv)
 
     c = chancreate(sizeof(unsigned long), buffer);
     taskcreate(primetask, c, 32768);
+
+    // main coroutine 给channel发送值
     for(i=2;; i++)
         chansendul(c, i);
 }
