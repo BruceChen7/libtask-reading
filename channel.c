@@ -232,11 +232,13 @@ chanalt(Alt *a)
     Channel *c;
     Task *t;
 
-    // 需要512个字节的t栈
+    // 需要512个字节的栈
     needstack(512);
+
+    // 找到block的index
     for(i=0; a[i].op != CHANEND && a[i].op != CHANNOBLK; i++)
         ;
-    // 到达了哨兵哪个原属
+    // 需要操作的channel index
     n = i;
 
     // 如果可以block
@@ -304,7 +306,7 @@ _chanop(Channel *c, int op, void *p, int canblock)
     a[0].c = c;
     a[0].op = op;
     a[0].v = p;
-    // 这是个哨兵值
+    // 这是个哨兵元素
     a[1].op = canblock ? CHANEND : CHANNOBLK;
     if(chanalt(a) < 0)
         return -1;

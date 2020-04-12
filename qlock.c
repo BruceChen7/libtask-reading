@@ -12,6 +12,8 @@ _qlock(QLock *l, int block)
         l->owner = taskrunning;
         return 1;
     }
+    // 如果是non-block模式，直接返回不可抢占
+    // 没有放弃CPU
     if(!block)
         return 0;
 
@@ -20,7 +22,9 @@ _qlock(QLock *l, int block)
 
     taskstate("qlock");
 
+    // 执行任务切换
     taskswitch();
+    // 是非可重入的锁
     if(l->owner != taskrunning){
         fprint(2, "qlock: owner=%p self=%p oops\n", l->owner, taskrunning);
         abort();
@@ -31,15 +35,18 @@ _qlock(QLock *l, int block)
 void
 qlock(QLock *l)
 {
+    // 阻塞的模式持有锁
     _qlock(l, 1);
 }
 
+// 试图抢占lock， 成功返回1，失败返回0
 int
 canqlock(QLock *l)
 {
     return _qlock(l, 0);
 }
 
+// 释放锁
 void
 qunlock(QLock *l)
 {
@@ -58,14 +65,17 @@ qunlock(QLock *l)
 static int
 _rlock(RWLock *l, int block)
 {
+    // 如果没有有写协程
     if(l->writer == nil && l->wwaiting.head == nil){
         l->readers++;
         return 1;
     }
+    // non-block模式，读失败，不切换协程
     if(!block)
         return 0;
     addtask(&l->rwaiting, taskrunning);
     taskstate("rlock");
+    // 执行上下文切换
     taskswitch();
     return 1;
 }

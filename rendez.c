@@ -8,9 +8,11 @@ tasksleep(Rendez *r)
 {
     addtask(&r->waiting, taskrunning);
     if(r->l)
+        // 释放锁
         qunlock(r->l);
     taskstate("sleep");
     taskswitch();
+    // 唤醒后s锁住
     if(r->l)
         qlock(r->l);
 }

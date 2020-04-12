@@ -64,9 +64,9 @@ typedef struct RWLock RWLock;
 struct RWLock
 {
 	int	readers;
-	Task	*writer;
-	Tasklist rwaiting;
-	Tasklist wwaiting;
+	Task	*writer; //  写协程
+	Tasklist rwaiting; // 读协程列表
+	Tasklist wwaiting;  //  写协程列表
 };
 
 void	rlock(RWLock*);
